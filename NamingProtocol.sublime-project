@@ -1,0 +1,10 @@
+{
+    "folders":
+    [
+        {
+            "path": "naming-protocol",
+            "file_exclude_patterns": ["*.tokens", "*.interp"],
+            "folder_exclude_patterns": ["__pycache__"]
+        }
+    ]
+}
