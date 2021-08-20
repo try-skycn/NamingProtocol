@@ -2,7 +2,7 @@ import argparse
 import sys
 from .parser import *
 from .cst2ast import CST2AST
-from .model import Context, Root, ModuleBuilder
+from .model import Model, Context, ModuleBuilder
 from .execution import ExecutionModel
 
 
@@ -12,6 +12,7 @@ class Opts:
         program, *arguments = argv
         parser = argparse.ArgumentParser(prog=program)
         parser.add_argument('-i', '--input', default=None, help='The path to the input file. Use stdin by default.')
+        parser.add_argument('-d', '--dep', action='append', default=[], help='Imported file.')
         parser.add_argument('-o', '--output', default=None, help='The path to the output file. Use stdout by default.')
         return cls(**parser.parse_args(arguments).__dict__)
 
@@ -30,10 +31,32 @@ class Opts:
         self.output.close()
 
 
+def analyze_file(execution_model, filename):
+    print('Analyze file \'{:s}\'.'.format(filename))
+    parser = FileParser(filename)
+    tree = parser.parse()
+    stmts = CST2AST(parser.input_stream).visit(tree)
+
+    for stmt in stmts:
+        execution_model.visit(stmt)
+    print('Done.')
+
+
 def main(argv):
     opts = Opts.parse(*argv)
 
     opts.open()
+
+    model = Model()
+    module_builder = ModuleBuilder()
+    context = Context(module_builder)
+    execution_model = ExecutionModel(model, context)
+
+    for dependency in opts.dep:
+        analyze_file(execution_model, dependency)
+        print()
+
+    print('Read input.')
     if opts.input is None:
         parser = StdinParser()
         tree = parser.parse()
@@ -42,36 +65,10 @@ def main(argv):
         tree = parser.parse()
     stmts = CST2AST(parser.input_stream).visit(tree)
 
-    model = Model()
-    root = Root()
-    module_builder = ModuleBuilder(root)
-    context = Context(module_builder)
-    execution_model = ExecutionModel(model, context)
     for stmt in stmts:
         execution_model.visit(stmt)
+
     opts.close()
-
-
-from .model.entity import *
-from .model.model import *
-
-
-def test(argv):
-    model = Model()
-    group_entity = GroupEntity()
-
-    individual_entity = IndividualEntity('function')
-    model.group_add(group_entity, individual_entity)
-
-    individual_entity = IndividualEntity('parameter')
-    individual_entity.plural = IndividualEntity('parameters')
-    model.group_add(group_entity, individual_entity)
-
-    head = IndividualEntity('head')
-    output = model.cross(head, group_entity, '_', plural='original-plural')
-
-    for name in output:
-        print(name)
 
 
 if __name__ == '__main__':

@@ -29,7 +29,7 @@ class Model:
         output = IndividualEntity()
 
         choices_dict = {name: (left_choice, right_choice) for name, left_choice, right_choice in choices}
-        choices_dict['original'] = ('original', 'original')
+        choices_dict.setdefault('original', ('original', 'original'))
         for name, (left_choice, right_choice) in choices_dict.items():
             output.set_by_name(name, self.cross_individual(left.get_by_name(left_choice, NoneEntity()), right.get_by_name(right_choice, NoneEntity()), connection, choices))
 

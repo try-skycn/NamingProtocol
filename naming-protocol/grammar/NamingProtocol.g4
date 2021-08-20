@@ -43,7 +43,7 @@ filterScript: body=subscript trailer=filterTrailer?;
 filterTrailer: '{' (descendents+=filterScript (',' descendents+=filterScript)*)? (';' common=filterTrailer)? '}' out='~'?;
 atomExpr: body=atom trailers+=atomTrailer*;
 atom: '[' body=subscript ']' #subscriptAtom
-    | '{' body=expr (',' descendents+=indivChunk)* '}' #indivAtom
+    | '<' body=expr (',' descendents+=indivChunk)* '>' #indivAtom
     | '<' body=INTEGER '>' #listAtom
     | '{' descendents+=groupChunk (',' descendents+=groupChunk)* '}' #groupAtom
     | body=NAME #nameAtom

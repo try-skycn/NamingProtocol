@@ -3,10 +3,7 @@ from .entity import *
 
 
 __all__ = [
-    'Root',
-    'Package',
     'ModuleBuilder',
-    'Module',
     'GroupBuilder',
     'ScopeProcessor'
 ]
@@ -26,27 +23,9 @@ class Holder:
         raise NotImplementedError
 
 
-class Root(Holder):
-    def __init__(self):
-        self.children = dict()
-
-
-class Package(Holder):
-    def __init__(self):
-        self.module = None
-        self.children = dict()
-
-    def set_module(self, path, module):
-        assert self.module is None, 'Path \'{:s}\' has already been occupied.'.format('.'.join(path))
-        self.module = module
-
-
 class ModuleBuilder(Holder):
-    def __init__(self, root):
-        self.root = root
-        self.path = None
+    def __init__(self):
         self.nvmap = collections.OrderedDict()
-        self.field_map = collections.OrderedDict()
 
     def get_scope_path(self):
         return []
@@ -56,31 +35,6 @@ class ModuleBuilder(Holder):
 
     def set_by_name(self, name, value):
         self.nvmap[name] = value
-
-    def set_path(self, path):
-        assert self.path is None, 'Path has already been set to \'{:s}\'.'.format('.'.join(path))
-        self.path = path
-
-    def set_key_value(self, key, value):
-        self.nvmap[key] = value
-
-    def set_field(self, key, value):
-        self.field_map[key] = value
-
-    def build(self):
-        module = Module(self.field_map)
-        package = self.root
-        for token in self.path:
-            if token not in package.children:
-                package.children[token] = Package()
-            package = package.children[token]
-        package.set_module(self.path, module)
-        return module
-
-
-class Module(Holder):
-    def __init__(self, field_map):
-        self.field_map = field_map
 
 
 class GroupBuilder(Holder):
@@ -97,7 +51,7 @@ class GroupBuilder(Holder):
             if name in self.nvmap:
                 return self.nvmap[name]
             else:
-                return self.parent.get(name)
+                return self.parent.get_by_name(name)
 
     def set_by_name(self, name, value):
         self.nvmap[name] = value

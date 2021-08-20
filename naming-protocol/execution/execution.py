@@ -12,6 +12,13 @@ class ExecutionModel(ASTVisitor):
         super().__init__()
         self.model = model
         self.context = initial_context
+        self.printed = False
+
+    def prepare_printing(self):
+        if self.printed:
+            print()
+        else:
+            self.printed = True
 
     def visitGroupStmtNode(self, node):
         try:
@@ -58,6 +65,7 @@ class ExecutionModel(ASTVisitor):
         except Exception as exc_value:
             raise StmtError(exc_value, node, 'body')
 
+        self.prepare_printing()
         print('Line {:d}, statement {:d}: {:s}'.format(node.line_index, node.stmtcol_index, node.content))
         self.model.show(body)
 
@@ -105,6 +113,8 @@ class ExecutionModel(ASTVisitor):
 
         scope_processor = self.context.top()
 
+        self.prepare_printing()
+        print('Line {:d}, statement {:d}: {:s}'.format(node.line_index, node.stmtcol_index, node.content))
         try:
             scope_processor.validate(self.model)
         except Exception as exc_value:
@@ -118,6 +128,8 @@ class ExecutionModel(ASTVisitor):
 
         scope_processor = self.context.top()
 
+        self.prepare_printing()
+        print('Line {:d}, statement {:d}: {:s}'.format(node.line_index, node.stmtcol_index, node.content))
         try:
             scope_processor.invalidate(self.model)
         except Exception as exc_value:
