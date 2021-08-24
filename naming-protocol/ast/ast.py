@@ -21,10 +21,11 @@ class StmtNode(ASTNode):
 
 
 class GroupStmtNode(StmtNode):
-    def __init__(self, content, line_index, stmtcol_index, name, children):
+    def __init__(self, content, line_index, stmtcol_index, name, children, key):
         super().__init__(content, line_index, stmtcol_index)
         self.name = name
         self.children = children
+        self.key = key
 
     def accept(self, visitor):
         return visitor.visitGroupStmtNode(self)
@@ -130,11 +131,12 @@ class UnionExprNode(ExprNode):
 
 
 class ConcatExprNode(ExprNode):
-    def __init__(self, left, right, connection, choices):
+    def __init__(self, left, right, connection, reverse, choices):
         super().__init__()
         self.left = left
         self.right = right
         self.connection = connection
+        self.reverse = reverse
         self.choices = choices
 
     def accept(self, visitor):

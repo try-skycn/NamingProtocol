@@ -14,7 +14,7 @@ class Model:
             return NoneEntity()
 
         if isinstance(left, ContentEntity) and isinstance(right, ContentEntity):
-            return ContentEntity(left.content + connection + right.content)
+            return ContentEntity(connection(left.content, right.content))
 
         if isinstance(left, ContentEntity):
             left_backup = left

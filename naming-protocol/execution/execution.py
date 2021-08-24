@@ -37,10 +37,17 @@ class ExecutionModel(ASTVisitor):
         except Exception as exc_value:
             raise StmtError(exc_value, node, 'pop')
 
+        group = group_builder.build()
         try:
-            self.context.set_by_name(group_builder.name, group_builder.build())
+            self.context.set_by_name(node.name, group)
         except Exception as exc_value:
-            raise StmtError(exc_value, node, 'set')
+            raise StmtError(exc_value, node, 'set-by-name')
+
+        if node.key is not None:
+            try:
+                self.context.set_by_key(node.key, group)
+            except Exception as exc_value:
+                raise StmtError(exc_value, node, 'set-by-key')
 
     def visitScopeStmtNode(self, node):
         try:
@@ -294,8 +301,13 @@ class RightExprModel(ASTVisitor):
         except Exception as exc_value:
             raise RightExprError(exc_value, node, 'right')
 
+        if not node.reverse:
+            connection = lambda x, y: x + node.connection + y
+        else:
+            connection = lambda x, y: y + node.connection + x
+
         try:
-            expr = self.model.cross(left, right, node.connection, node.choices)
+            expr = self.model.cross(left, right, connection, node.choices)
         except Exception as exc_value:
             raise RightExprError(exc_value, node, 'expression')
 
@@ -332,7 +344,7 @@ class RightExprModel(ASTVisitor):
             try:
                 body = RightSubscriptModel(body).visit(trailer)
             except Exception as exc_value:
-                raise RightExprError(exc_value, node, 'trailers[{:s}]'.format(i))
+                raise RightExprError(exc_value, node, 'trailers[{:d}]'.format(i))
 
         return body
 

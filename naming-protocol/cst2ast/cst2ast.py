@@ -73,7 +73,7 @@ class UnitStmtConverter(BaseVisitor):
 
     def visitGroupStmt(self, ctx):
         content = self.input_stream.getText(ctx.start.start, ctx.begin.stop)
-        return GroupStmtNode(content, self.line_index, self.stmtcol_index, ctx.name.text, list(SuiteConverter(self.input_stream).visit(ctx.body)))
+        return GroupStmtNode(content, self.line_index, self.stmtcol_index, ctx.name.text, list(SuiteConverter(self.input_stream).visit(ctx.body)), None if ctx.setIndicator is None else (ctx.name.text if ctx.key is None else string_converter(ctx.key.text)))
 
     def visitScopeStmt(self, ctx):
         content = self.input_stream.getText(ctx.start.start, ctx.begin.stop)
@@ -132,8 +132,8 @@ class ExprConverter(BaseVisitor):
         concat_chunk_converter = ConcatChunkConverter(self)
         left = self.visit(ctx.body)
         for child in ctx.descendents:
-            right, connection, choices = concat_chunk_converter.visit(child)
-            left = ConcatExprNode(left, right, connection, choices)
+            right, connection, reverse, choices = concat_chunk_converter.visit(child)
+            left = ConcatExprNode(left, right, connection, reverse, choices)
         return left
 
     def visitFilterExpr(self, ctx):
@@ -196,7 +196,7 @@ class ConcatChunkConverter(BaseVisitor):
         self.expr_converter = expr_converter
 
     def visitConcatChunk(self, ctx):
-        return self.expr_converter.visit(ctx.body), '_' if ctx.connection is None else string_converter(ctx.connection.text), [self.visit(child) for child in ctx.descendents]
+        return self.expr_converter.visit(ctx.body), '_' if ctx.connection is None else string_converter(ctx.connection.text), ctx.reverse is not None, [self.visit(child) for child in ctx.descendents]
 
     def visitConcatNameChunk(self, ctx):
         return ctx.name.text, ctx.left.text, ctx.right.text
@@ -211,7 +211,7 @@ class FilterTrailerConverter(BaseVisitor):
         if ctx.trailer is None:
             trailer = None
         else:
-            trailer = SubscriptConverter().visit(ctx.trailer)
+            trailer = self.visit(ctx.trailer)
         return FilterScriptNode(body, trailer)
 
     def visitFilterTrailer(self, ctx):
@@ -257,7 +257,7 @@ class GroupChunkConverter(BaseVisitor):
         super().__init__()
         self.expr_converter = expr_converter
 
-    def visitIndivChunk(self, ctx):
+    def visitGroupChunk(self, ctx):
         return string_converter(ctx.key.text), self.expr_converter.visit(ctx.value)
 
 

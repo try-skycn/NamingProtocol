@@ -19,7 +19,7 @@ stmtLine
     | body=scopeStmt end=NEWLINE #scopeStmtLine
     ;
 smallStmt: showStmt | unzipStmt | useStmt | validateStmt | invalidateStmt | setStmt | assignStmt | collapseStmt;
-groupStmt: 'group' name=NAME begin='begin' body=suite 'end';
+groupStmt: (setIndicator='set' key=STRING?)? 'group' name=NAME begin='begin' body=suite 'end';
 scopeStmt: 'scope' name=NAME begin='begin' body=suite 'end';
 showStmt: 'show' body=expr;
 unzipStmt: 'unzip' body=expr;
@@ -36,7 +36,7 @@ keepChunk: indicator='keep'? body=expr;
 expr: descendents+=unionChunk ('|' descendents+=unionChunk)*;
 unionChunk: body=concatExpr ('[' 'keep' keeps+=STRING (',' keeps+=STRING)* ']')?;
 concatExpr: body=filterExpr ('+' descendents+=concatChunk)*;
-concatChunk: body=filterExpr ('@' connection=STRING)? descendents+=concatNameChunk*;
+concatChunk: body=filterExpr ('@' reverse='reverse'? connection=STRING)? descendents+=concatNameChunk*;
 concatNameChunk: '@' name=NAME '=' left=NAME '*' right=NAME;
 filterExpr: body=atomExpr trailer=filterTrailer?;
 filterScript: body=subscript trailer=filterTrailer?;
@@ -80,6 +80,7 @@ COLLAPSE:           'collapse';
 SHOW:               'show';
 BEGIN:              'begin';
 END:                'end';
+REVERSE:            'reverse';
 
 // Separators
 
