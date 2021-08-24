@@ -17,6 +17,9 @@ class Entity:
     def get_by_key(self, key):
         raise NotImplementedError
 
+    def generate_index_string(self, num_digit, index_prefix, index):
+        return index_prefix + '{{:0{:d}X}}'.format(num_digit).format(index)
+
 
 class NoneEntity(Entity):
     def __init__(self):
@@ -25,13 +28,16 @@ class NoneEntity(Entity):
     def __iter__(self):
         yield from []
 
-    def represent(self, indent, prefix):
+    def get_lengths(self):
+        return []
+
+    def represent(self, num_digits, index_prefix, indent, prefix):
         reprs = []
-        reprs.append(self.pure_represent(indent, prefix))
+        reprs.append(self.pure_represent(num_digits, index_prefix, indent, prefix))
         return reprs
 
-    def pure_represent(self, indent, prefix):
-        return indent, prefix, 'None', ''
+    def pure_represent(self, num_digits, index_prefix, indent, prefix):
+        return indent, prefix, index_prefix + '0' * sum(num_digits), 'None'
 
 
 class ContentEntity(Entity):
@@ -45,13 +51,16 @@ class ContentEntity(Entity):
     def get_content(self):
         return self.content
 
-    def represent(self, indent, prefix):
+    def get_lengths(self):
+        return []
+
+    def represent(self, num_digits, index_prefix, indent, prefix):
         reprs = []
-        reprs.append(self.pure_represent(indent, prefix))
+        reprs.append(self.pure_represent(num_digits, index_prefix, indent, prefix))
         return reprs
 
-    def pure_represent(self, indent, prefix):
-        return indent, prefix, 'Content', '\'{:s}\''.format(self.content.translate(str.maketrans({'\'': '\\\''})))
+    def pure_represent(self, num_digits, index_prefix, indent, prefix):
+        return indent, prefix, index_prefix + '0' * sum(num_digits), '\'{:s}\''.format(self.content.translate(str.maketrans({'\'': '\\\''})))
 
 
 class IndividualEntity(Entity):
@@ -74,15 +83,28 @@ class IndividualEntity(Entity):
     def __iter__(self):
         yield from self.nvmap.items()
 
-    def represent(self, indent, prefix):
-        reprs = []
-        reprs.append(self.pure_represent(indent, prefix))
+    def get_lengths(self):
+        lengths = []
         for name, value in self:
-            reprs.extend(value.represent(indent + 1, '[{:s}]'.format(name)))
+            child = value.get_lengths()
+            for i, x in enumerate(child):
+                if len(lengths) == i:
+                    lengths.append(x)
+                else:
+                    assert len(lengths) > i
+                    if lengths[i] < x:
+                        lengths[i] = x
+        return [len(self.nvmap), *lengths]
+
+    def represent(self, num_digits, index_prefix, indent, prefix):
+        reprs = []
+        reprs.append(self.pure_represent(num_digits, index_prefix, indent, prefix))
+        for index, (name, value) in enumerate(self):
+            reprs.extend(value.represent(num_digits[1:], self.generate_index_string(num_digits[0], index_prefix, index), indent + 1, '[{:s}]'.format(name)))
         return reprs
 
-    def pure_represent(self, indent, prefix):
-        return indent, prefix, 'Individual', '<0x{:X}>'.format(id(self))
+    def pure_represent(self, num_digits, index_prefix, indent, prefix):
+        return indent, prefix, 'Individual', index_prefix + '-' * sum(num_digits)
 
 
 class ListEntity(Entity):
@@ -103,15 +125,28 @@ class ListEntity(Entity):
     def __iter__(self):
         yield from enumerate(self.internal_list)
 
-    def represent(self, indent, prefix):
+    def get_lengths(self):
+        lengths = []
+        for index, value in self:
+            child = value.get_lengths()
+            for i, x in enumerate(child):
+                if len(lengths) == i:
+                    lengths.append(x)
+                else:
+                    assert len(lengths) > i
+                    if lengths[i] < x:
+                        lengths[i] = x
+        return [len(self.internal_list), *lengths]
+
+    def represent(self, num_digits, index_prefix, indent, prefix):
         reprs = []
-        reprs.append(self.pure_represent(indent, prefix))
-        for key, value in self:
-            reprs.extend(value.represent(indent + 1, '[{:d}]'.format(index)))
+        reprs.append(self.pure_represent(num_digits, index_prefix, indent, prefix))
+        for index, value in self:
+            reprs.extend(value.represent(num_digits[1:], self.generate_index_string(num_digits[0], index_prefix, index), indent + 1, '[{:d}]'.format(index)))
         return reprs
 
-    def pure_represent(self, indent, prefix):
-        return indent, prefix, 'List', '<0x{:X}>'.format(id(self))
+    def pure_represent(self, num_digits, index_prefix, indent, prefix):
+        return indent, prefix, 'List', index_prefix + '-' * sum(num_digits)
 
 
 class GroupEntity(Entity):
@@ -131,12 +166,25 @@ class GroupEntity(Entity):
     def __iter__(self):
         yield from self.internal_map.items()
 
-    def represent(self, indent, prefix):
-        reprs = []
-        reprs.append(self.pure_represent(indent, prefix))
+    def get_lengths(self):
+        lengths = []
         for key, value in self:
-            reprs.extend(value.represent(indent + 1, '[\'{:s}\']'.format(key.translate(str.maketrans({'\'': '\\\''})))))
+            child = value.get_lengths()
+            for i, x in enumerate(child):
+                if len(lengths) == i:
+                    lengths.append(x)
+                else:
+                    assert len(lengths) > i
+                    if lengths[i] < x:
+                        lengths[i] = x
+        return [len(self.internal_map), *lengths]
+
+    def represent(self, num_digits, index_prefix, indent, prefix):
+        reprs = []
+        reprs.append(self.pure_represent(num_digits, index_prefix, indent, prefix))
+        for index, (key, value) in enumerate(self):
+            reprs.extend(value.represent(num_digits[1:], self.generate_index_string(num_digits[0], index_prefix, index), indent + 1, '[\'{:s}\']'.format(key.translate(str.maketrans({'\'': '\\\''})))))
         return reprs
 
-    def pure_represent(self, indent, prefix):
-        return indent, prefix, 'Group', '<0x{:X}>'.format(id(self))
+    def pure_represent(self, num_digits, index_prefix, indent, prefix):
+        return indent, prefix, 'Group', index_prefix + '-' * sum(num_digits)

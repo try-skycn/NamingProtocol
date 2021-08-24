@@ -160,7 +160,9 @@ class Model:
                     raise TypeError()
 
     def show(self, body):
-        reprs = body.represent(0, '<START>')
+        lengths = body.get_lengths()
+        num_digits = [count_hex_length(x) for x in lengths]
+        reprs = body.represent(num_digits, 'x', 0, '<START>')
         for indent, prefix, ntype, info in reprs:
             print('{}{} {} {}'.format(' ' * indent * 2 + '- ', prefix, ntype, info))
 
